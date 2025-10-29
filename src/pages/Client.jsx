@@ -36,6 +36,9 @@ const NewClient = () => {
   const [selectedLocation2, setSelectedLocation2] = useState(
     cumulative?.[0]?.LocationName || ""
   );
+  const [radioFilter, setRadioFilter] = useState("running");
+  const [cumulativeLocations, setCumulativeLocations] = useState([]);
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const expandToday = () => {
     setShowExpandedToday(!showExpandedToday);
@@ -75,7 +78,8 @@ const NewClient = () => {
         setIsLoading(true);
         const response = await axios.get(apiUrl);
 
-        console.log("API Response:", response.data);
+        let locations = response.data.map((item) => item.locationname) || [];
+        setCumulativeLocations(locations);
         setCumulative(response.data);
         setIsLoading(false);
       } catch (error) {
@@ -101,7 +105,6 @@ const NewClient = () => {
         setIsLoading(true);
         const response = await axios.get(apiUrl);
 
-        console.log("API Response:", response.data);
         setToday(response.data);
         setIsLoading(false);
       } catch (error) {
@@ -126,7 +129,6 @@ const NewClient = () => {
         setIsLoading(true);
         const response = await axios.get(apiUrl);
 
-        console.log("API Response:", response.data);
         setStatus(response.data);
         setIsLoading(false);
       } catch (error) {
@@ -580,7 +582,6 @@ const NewClient = () => {
   const totalLocations = 55;
   const doneLocations = 0;
   const exportTotalTableToCSV = () => {
-    console.log("Clicked");
     const formattedDate = formattedYesterdayDate;
 
     const groupHeaders = [
@@ -782,7 +783,7 @@ const NewClient = () => {
     link.click();
     document.body.removeChild(link);
   };
-
+  console.log(user);
   return (
     <>
       <Header2 />
@@ -1999,63 +2000,6 @@ const NewClient = () => {
                 </div>
               </div>
             </div>
-            {/* <div className="col-lg-4 col-md-4 col-sm-4">
-              <div className="row position-relative  mb-2">
-                <div className="d-flex my-2 mt-md-0 mt-3 justify-content-between align-items-center position-relative">
-                  <div>
-                    <p className="heading-of-para m-0">Verification Status</p>
-                  </div>
-                  <div>
-                    <div style={{ position: "relative" }}>
-                      <div className="custom-select-wrapper">
-                        <div
-                          className="custom-select-selected"
-                          onClick={toggleDropdown}
-                        >
-                          {selectedLocation2
-                            .replace(/district court/gi, "")
-                            .trim()}
-                          <MdArrowDropDown style={{ fontSize: "25px" }} />
-                        </div>
-                        {isDropdownOpen && (
-                          <div className="custom-select-options">
-                            {cumulative?.map((loc, idx) => (
-                              <div
-                                key={idx}
-                                className="custom-option"
-                                onClick={() => handleSelect2(loc.LocationName)}
-                              >
-                                {loc.LocationName.replace(
-                                  /district court/gi,
-                                  ""
-                                ).trim()}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="row me-1">
-                <div className="doughnut-card">
-                  {Array.isArray(today) &&
-                    today.length > 0 &&
-                    Array.isArray(cumulative) &&
-                    cumulative.length > 0 && (
-                      <div className="row justify-content-between">
-                        {renderDonutChart("Yesterday", currentToday, "today")}
-                        {renderDonutChart(
-                          "Cumulative",
-                          currentCumulative,
-                          "cumulative"
-                        )}
-                      </div>
-                    )}
-                </div>
-              </div>
-            </div> */}
           </div>
           <div className="row mt-3 ms-md-3 me-md-3 justify-content-center align-items-center">
             <div className="col-lg-12 col-md-12 col-12">
@@ -2084,6 +2028,32 @@ const NewClient = () => {
               </div>
               <div className="row">
                 <div className="client-table-card">
+                  {user && user?.designation?.toLowerCase() == "clr" && (
+                    <div className="d-flex align-items-center gap-2 mt-2 mb-1">
+                      <div>
+                        <input
+                          id="running"
+                          type="radio"
+                          checked={radioFilter == "running"}
+                          onChange={() => setRadioFilter("running")}
+                        />
+                        <label className="mx-2" htmlFor="running">
+                          Running Districts
+                        </label>
+                      </div>
+                      <div>
+                        <input
+                          type="radio"
+                          id="all"
+                          checked={radioFilter == "all"}
+                          onChange={() => setRadioFilter("all")}
+                        />
+                        <label className="mx-2" htmlFor="all">
+                          All Districts
+                        </label>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ maxHeight: "375px", overflow: "auto" }}>
                     <table
                       className="table-bordered mb-4 mt-4"
@@ -2114,111 +2084,123 @@ const NewClient = () => {
                       <tbody>
                         {status &&
                           Array.isArray(cumulative) &&
-                          status.map((elem, index) => {
-                            const cumulativeMatch = Array.isArray(cumulative)
-                              ? cumulative.find((item) => {
-                                  const cleanedDistrict = item.locationname;
-                                  return cleanedDistrict === elem.locationName;
-                                })
-                              : null;
+                          status
+                            .filter((item) =>
+                              radioFilter == "running"
+                                ? cumulativeLocations.includes(
+                                    item.locationName
+                                  )
+                                : item
+                            )
+                            .map((elem, index) => {
+                              const cumulativeMatch = Array.isArray(cumulative)
+                                ? cumulative.find((item) => {
+                                    const cleanedDistrict = item.locationname;
+                                    return (
+                                      cleanedDistrict === elem.locationName
+                                    );
+                                  })
+                                : null;
 
-                            const todayFiles = cumulativeMatch
-                              ? cumulativeMatch.ScanFiles
-                              : elem.todayFiles;
-                            const totalFiles = cumulativeMatch
-                              ? cumulativeMatch.DMSFiles
-                              : elem.totalFiles;
-                            const getYearFromDMY = (dateStr) => {
-                              if (!dateStr) return null;
-                              const separator = dateStr.includes("-")
-                                ? "-"
-                                : "/";
-                              const [day, month, year] =
-                                dateStr.split(separator);
-                              return parseInt(year);
-                            };
-                            const balance =
-                              Number(elem.cumulativeFiles || 0) -
-                              Number(todayFiles || 0);
-                            const noofdays = balance / elem.targetfiles;
-                            const targetDate = getFutureDate(noofdays);
-                            const completedYear = getYearFromDMY(targetDate);
-                            let backgroundColor = "transparent";
-                            if (elem.completedStatus === 1) {
-                              backgroundColor = "#b7ebbd";
-                            }
-                            // else if (completedYear && completedYear > 2027) {
-                            //     backgroundColor = '#FFE2E2';
-                            // }
-                            const rowStyle = {
-                              backgroundColor,
-                              border: "1px solid black",
-                              fontSize: "13px",
-                              fontWeight: "600",
-                              textAlign: "center",
-                            };
-                            return (
-                              <tr key={index} style={rowStyle}>
-                                <td style={{ border: "1px solid black" }}>
-                                  {index + 1}
-                                </td>
-                                <td
-                                  style={{
-                                    border: "1px solid black",
-                                    textAlign: "left",
-                                  }}
-                                >
-                                  {elem.locationName}
-                                </td>
-                                <td style={{ border: "1px solid black" }}>
-                                  {elem.completedStatus === 1 ? "Yes" : "No"}
-                                </td>
-                                <td style={{ border: "1px solid black" }}>
-                                  {(() => {
-                                    const normalizeDate = (dateStr) => {
-                                      if (!dateStr) return null;
-                                      const parts = dateStr.includes("/")
-                                        ? dateStr.split("/")
-                                        : dateStr.split("-");
-                                      const [day, month, year] = parts;
-                                      return new Date(
-                                        `${year}-${month}-${day}`
-                                      );
-                                    };
+                              const todayFiles = cumulativeMatch
+                                ? cumulativeMatch.ScanFiles
+                                : elem.todayFiles;
+                              const totalFiles = cumulativeMatch
+                                ? cumulativeMatch.DMSFiles
+                                : elem.totalFiles;
+                              const getYearFromDMY = (dateStr) => {
+                                if (!dateStr) return null;
+                                const separator = dateStr.includes("-")
+                                  ? "-"
+                                  : "/";
+                                const [day, month, year] =
+                                  dateStr.split(separator);
+                                return parseInt(year);
+                              };
+                              const balance =
+                                Number(elem.cumulativeFiles || 0) -
+                                Number(todayFiles || 0);
+                              const noofdays = balance / elem.targetfiles;
+                              const targetDate = getFutureDate(noofdays);
+                              const completedYear = getYearFromDMY(targetDate);
+                              let backgroundColor = "transparent";
+                              if (elem.completedStatus === 1) {
+                                backgroundColor = "#b7ebbd";
+                              }
+                              // else if (completedYear && completedYear > 2027) {
+                              //     backgroundColor = '#FFE2E2';
+                              // }
+                              const rowStyle = {
+                                backgroundColor,
+                                border: "1px solid black",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                textAlign: "center",
+                              };
+                              return (
+                                <tr key={index} style={rowStyle}>
+                                  <td style={{ border: "1px solid black" }}>
+                                    {index + 1}
+                                  </td>
+                                  <td
+                                    style={{
+                                      border: "1px solid black",
+                                      textAlign: "left",
+                                    }}
+                                  >
+                                    {elem.locationName}
+                                  </td>
+                                  <td style={{ border: "1px solid black" }}>
+                                    {elem.completedStatus === 1 ? "Yes" : "No"}
+                                  </td>
+                                  <td style={{ border: "1px solid black" }}>
+                                    {elem.targetfiles == 0
+                                      ? "-"
+                                      : (() => {
+                                          const normalizeDate = (dateStr) => {
+                                            if (!dateStr) return null;
+                                            const parts = dateStr.includes("/")
+                                              ? dateStr.split("/")
+                                              : dateStr.split("-");
+                                            const [day, month, year] = parts;
+                                            return new Date(
+                                              `${year}-${month}-${day}`
+                                            );
+                                          };
 
-                                    const normalizedDate =
-                                      normalizeDate(targetDate);
-                                    const today = new Date();
-                                    today.setHours(0, 0, 0, 0);
+                                          const normalizedDate =
+                                            normalizeDate(targetDate);
+                                          const today = new Date();
+                                          today.setHours(0, 0, 0, 0);
 
-                                    if (
-                                      elem.completedStatus === 1 ||
-                                      !normalizedDate ||
-                                      isNaN(normalizedDate.getTime()) ||
-                                      normalizedDate < today
-                                    ) {
-                                      return "Completed";
-                                    }
+                                          if (
+                                            elem.completedStatus === 1 ||
+                                            !normalizedDate ||
+                                            isNaN(normalizedDate.getTime()) ||
+                                            normalizedDate < today
+                                          ) {
+                                            return "Completed";
+                                          }
 
-                                    return targetDate;
-                                  })()}
-                                </td>
+                                          return targetDate;
+                                        })()}
+                                  </td>
 
-                                <td style={{ border: "1px solid black" }}>
-                                  {Number(elem.cumulativeFiles).toLocaleString(
-                                    "en-IN"
-                                  )}
-                                </td>
-                                <td style={{ border: "1px solid black" }}>
-                                  {Number(todayFiles).toLocaleString("en-IN")}
-                                </td>
+                                  <td style={{ border: "1px solid black" }}>
+                                    {Number(
+                                      elem.cumulativeFiles
+                                    ).toLocaleString("en-IN")}
+                                  </td>
+                                  <td style={{ border: "1px solid black" }}>
+                                    {Number(todayFiles).toLocaleString("en-IN")}
+                                  </td>
 
-                                <td style={{ border: "1px solid black" }}>
-                                  {balance.toLocaleString("en-IN")}
-                                </td>
-                              </tr>
-                            );
-                          })}
+                                  <td style={{ border: "1px solid black" }}>
+                                    {balance.toLocaleString("en-IN")}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         {Array.isArray(status) && status.length > 0 && (
                           <tr
                             style={{
@@ -2296,73 +2278,6 @@ const NewClient = () => {
                 </div>
               </div>
             </div>
-            {/* <div className="col-lg-4 col-md-4 col-11 ">
-              <div className="row mb-md-2 mt-md-0 mb-1 mt-3">
-                <div className="d-flex  justify-content-between align-items-center position-relative">
-                  <div>
-                    <p className="heading-of-para">District Files Status</p>
-                  </div>
-                  <div>
-                    <div style={{ position: "relative" }} className="mb-3">
-                     
-                      <div className="custom-select-wrapper">
-                        <div
-                          className="custom-select-selected"
-                          onClick={toggleDropdown2}
-                        >
-                          {selectedLocation}
-                          <MdArrowDropDown style={{ fontSize: "25px" }} />
-                        </div>
-                        {isDropdownOpen2 && (
-                          <div className="custom-select-options">
-                            {status?.map((loc, idx) => (
-                              <div
-                                key={idx}
-                                className="custom-option"
-                                onClick={() => handleSelect3(loc.locationName)}
-                              >
-                                {loc.locationName}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="doughnut-card">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h5 style={{ margin: 0 }}>{selectedLocation}</h5>
-                  <div style={{ fontSize: "12px", textAlign: "right" }}>
-                    <div>
-                      <strong>Target:</strong>{" "}
-                      {Number(selected?.cumulativeFiles || 0).toLocaleString(
-                        "en-IN"
-                      )}
-                    </div>
-                    <div style={{ color: "#888" }}>Estimated Files to Scan</div>
-                  </div>
-                </div>
-                <Doughnut
-                  data={doughnutData}
-                  options={options}
-                  plugins={[centerText]}
-                />
-                <div
-                  className="d-flex justify-content-between mt-3 px-2"
-                  style={{ fontSize: "13px" }}
-                >
-                  <div>
-                    <strong>Achieved Percentage:</strong> {percent}%
-                  </div>
-                  <div>
-                    <strong>Due Date:</strong> {dueDate}
-                  </div>
-                </div>
-                
-              </div>
-            </div> */}
           </div>
         </div>
       </div>

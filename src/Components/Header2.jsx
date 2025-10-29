@@ -3,6 +3,7 @@ import { IoLogOut } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
 const Header2 = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -28,7 +29,7 @@ const Header2 = () => {
               id="navbarSupportedContent"
             >
               <ul className="navbar-nav me-auto mb-2 mb-lg-0"></ul>
-              <form className="d-flex">
+              <form className="d-flex align-items-center gap-2">
                 <button
                   onClick={handleLogout}
                   className="btn logout-btn"
@@ -43,6 +44,14 @@ const Header2 = () => {
                   />
                   LOGOUT
                 </button>
+                <span className="text-white d-inline-block">
+                  <span className="fw-semibold">Welcome:</span>{" "}
+                  {user && user.name ? user.name : "Guest"}
+                  {user && user.district_name && (
+                    <span className="mx-1">-</span>
+                  )}
+                  {user && user.district_name && user.district_name}
+                </span>
               </form>
             </div>
           </div>
