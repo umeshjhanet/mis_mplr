@@ -2028,32 +2028,35 @@ const NewClient = () => {
               </div>
               <div className="row">
                 <div className="client-table-card">
-                  {user && user?.designation?.toLowerCase() == "clr" && (
-                    <div className="d-flex align-items-center gap-2 mt-2 mb-1">
-                      <div>
-                        <input
-                          id="running"
-                          type="radio"
-                          checked={radioFilter == "running"}
-                          onChange={() => setRadioFilter("running")}
-                        />
-                        <label className="mx-2" htmlFor="running">
-                          Running Districts
-                        </label>
+                  {user &&
+                    ["admin", "clr"].includes(
+                      user?.designation?.toLowerCase()
+                    ) && (
+                      <div className="d-flex align-items-center gap-2 mt-2 mb-1">
+                        <div>
+                          <input
+                            id="running"
+                            type="radio"
+                            checked={radioFilter == "running"}
+                            onChange={() => setRadioFilter("running")}
+                          />
+                          <label className="mx-2" htmlFor="running">
+                            Running Districts
+                          </label>
+                        </div>
+                        <div>
+                          <input
+                            type="radio"
+                            id="all"
+                            checked={radioFilter == "all"}
+                            onChange={() => setRadioFilter("all")}
+                          />
+                          <label className="mx-2" htmlFor="all">
+                            All Districts
+                          </label>
+                        </div>
                       </div>
-                      <div>
-                        <input
-                          type="radio"
-                          id="all"
-                          checked={radioFilter == "all"}
-                          onChange={() => setRadioFilter("all")}
-                        />
-                        <label className="mx-2" htmlFor="all">
-                          All Districts
-                        </label>
-                      </div>
-                    </div>
-                  )}
+                    )}
                   <div style={{ maxHeight: "375px", overflow: "auto" }}>
                     <table
                       className="table-bordered mb-4 mt-4"
